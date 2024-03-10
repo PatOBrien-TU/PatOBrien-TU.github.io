@@ -8,7 +8,10 @@ try {
 // Initialize variables to store the first MIDI input and output devices detected.
 let myInput = WebMidi.inputs[0];
 let myOutput = WebMidi.outputs[0];
-
+let output = WebMidi.outputs[0];
+//myOutput.playNote("Gb4", [1]);
+myOutput.playNote("A4", { duration: 3000 });
+// myOutput.sendNoteOn("C");
 // Get the dropdown elements from the HTML document by their IDs.
 let dropIns = document.getElementById("dropdown-ins");
 let dropOuts = document.getElementById("dropdown-outs");
@@ -45,7 +48,9 @@ myInput.addListener("noteon", function (someMIDI) {
   let pitch = someMIDI.note.number + parseInt(slider.value);
   let velocity = someMIDI.note.rawAttack;
   let midiNoteOutput = new Note(pitch, { rawAttack: velocity });
-  myOutput.sendNoteOn(midiNoteOutput);
+  // myOutput.sendNoteOn(midiNoteOutput);
+  // myOutput.playNote("Gb4");
+  // console.log("NoteOn");
 });
 
 myInput.addListener("noteoff", function (someMIDI) {
@@ -54,3 +59,9 @@ myInput.addListener("noteoff", function (someMIDI) {
   let midiNoteOutput = new Note(pitch, { rawAttack: velocity });
   myOutput.sendNoteOff(midiNoteOutput);
 });
+
+function myplayC() {
+  let myOutput = WebMidi.outputs[0];
+  myOutput.playNote("C", { duration: 1000 });
+  console.log("MyPlayC");
+}
