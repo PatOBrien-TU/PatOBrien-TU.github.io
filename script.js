@@ -1,29 +1,18 @@
 // Enable WebMidi API and handle any errors if it fails to enable.
-try {
-  await WebMidi.enable();
-} catch (err) {
-  console.error("WebMidi could not be enabled:", err);
-}
+await WebMidi.enable();
 
-// Initialize variables to store the first MIDI input and output devices detected.
 let myInput = WebMidi.inputs[0];
 let myOutput = WebMidi.outputs[0];
-let output = WebMidi.outputs[0];
-//myOutput.playNote("Gb4", [1]);
-myOutput.playNote("A4", { duration: 3000 });
-// myOutput.sendNoteOn("C");
-// Get the dropdown elements from the HTML document by their IDs.
+
 let dropIns = document.getElementById("dropdown-ins");
 let dropOuts = document.getElementById("dropdown-outs");
 let slider = document.getElementById("slide");
-let transpoAmt = document.getElementById("TranspoAmt");
 
-// Update transposition display when slider changes
-slider.addEventListener("change", function () {
-  transpoAmt.innerText = `${slider.value} semitones`;
+slider.addEventListener("input", function () {
+  document.getElementById("TranspoAmt").innerText = `${slider.value} cents`;
+  transposition = parseInt(slider.value);
 });
 
-// Populate dropdowns with MIDI devices
 WebMidi.inputs.forEach(function (input, num) {
   dropIns.innerHTML += `<option value=${num}>${input.name}</option>`;
 });
@@ -32,36 +21,43 @@ WebMidi.outputs.forEach(function (output, num) {
   dropOuts.innerHTML += `<option value=${num}>${output.name}</option>`;
 });
 
-// Add event listener for input device change
 dropIns.addEventListener("change", function () {
-  // Change input device
+  if (myInput.hasListener("noteon")) {
+    myInput.removeListener("noteon");
+  }
+  if (myInput.hasListener("noteoff")) {
+    myInput.removeListener("noteoff");
+  }
+
   myInput = WebMidi.inputs[dropIns.value];
+
+  myInput.addListener("noteon", function (midiNoteInput) {
+    myOutput.sendNoteOn(midiProcess(midiNoteInput).pitch, {
+      rawAttack: midiNoteInput.note.rawAttack,
+    });
+  });
+
+  myInput.addListener("noteoff", function (midiNoteInput) {
+    myOutput.sendNoteOff(midiProcess(midiNoteInput).pitch);
+  });
 });
 
-// Add event listener for output device change
 dropOuts.addEventListener("change", function () {
-  myOutput = WebMidi.outputs[dropOuts.value];
+  myOutput = WebMidi.outputs[dropOuts.value].channels[1];
 });
 
-// Add MIDI event listeners for noteon and noteoff
-myInput.addListener("noteon", function (someMIDI) {
-  let pitch = someMIDI.note.number + parseInt(slider.value);
-  let velocity = someMIDI.note.rawAttack;
-  let midiNoteOutput = new Note(pitch, { rawAttack: velocity });
-  // myOutput.sendNoteOn(midiNoteOutput);
-  // myOutput.playNote("Gb4");
-  // console.log("NoteOn");
-});
+let transposition = 0;
 
-myInput.addListener("noteoff", function (someMIDI) {
-  let pitch = someMIDI.note.number + parseInt(slider.value);
-  let velocity = someMIDI.note.rawAttack;
-  let midiNoteOutput = new Note(pitch, { rawAttack: velocity });
-  myOutput.sendNoteOff(midiNoteOutput);
-});
-
-function myplayC() {
-  let myOutput = WebMidi.outputs[0];
-  myOutput.playNote("C", { duration: 1000 });
-  console.log("MyPlayC");
-}
+const midiProcess = function (midiNoteInput) {
+  let pitch = midiNoteInput.note.number;
+  let centsRatio = Math.pow(2, transposition / 1200); // Convert cents to ratio
+  pitch = Math.max(0, Math.min(127, Math.round(pitch * centsRatio))); // Apply transposition
+  let velocity = midiNoteInput.velocity; // Extract velocity directly from the MIDI message
+  // Construct MIDI note object manually
+  let midiNoteOutput = {
+    pitch: pitch,
+    velocity: velocity,
+    channel: midiNoteInput.channel,
+  };
+  return midiNoteOutput;
+};
