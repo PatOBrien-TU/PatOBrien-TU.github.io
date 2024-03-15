@@ -1,6 +1,6 @@
 // Enable WebMidi API and handle any errors if it fails to enable.
 await WebMidi.enable();
-
+// make pitches bend
 let myInput = WebMidi.inputs[0];
 let myOutput = WebMidi.outputs[0];
 
